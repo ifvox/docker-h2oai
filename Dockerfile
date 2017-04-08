@@ -9,6 +9,13 @@ FROM alpine:3.5
 ################################################################################
 ENV LANG=C.UTF-8
 
+ENV JAVA_HOME /usr/local/java
+ENV JRE ${JAVA_HOME}/jre
+ENV JAVA_OPTS=-Djava.awt.headless=true PATH=${PATH}:${JRE}/bin:${JAVA_HOME}/bin
+ENV ENV=/etc/shinit.sh
+
+COPY shinit.sh /etc/
+
 RUN \
   ALPINE_GLIBC_BASE_URL="https://github.com/sgerrand/alpine-pkg-glibc/releases/download" && \
   ALPINE_GLIBC_PACKAGE_VERSION="2.25-r0" && \
