@@ -1,12 +1,7 @@
 FROM alpine:3.5
 
-################################################################################
-# 1. SETUP GLIBC
-#
-################################################################################
-# blatantly stolen from: https://github.com/frol/docker-alpine-glibc
-#   Here we install GNU libc (aka glibc) and set C.UTF-8 locale as default.
-################################################################################
+# combine work from delitescere/jdk, frol/docker-alpine-glibc and shinyproxy
+
 ENV LANG=C.UTF-8
 
 ENV JAVA_HOME /usr/local/java
@@ -16,36 +11,45 @@ ENV ENV=/etc/shinit.sh
 
 COPY shinit.sh /etc/
 
+WORKDIR /tmp
+
 RUN \
-  ALPINE_GLIBC_BASE_URL="https://github.com/sgerrand/alpine-pkg-glibc/releases/download" && \
-  ALPINE_GLIBC_PACKAGE_VERSION="2.25-r0" && \
-  ALPINE_GLIBC_BASE_PACKAGE_FILENAME="glibc-$ALPINE_GLIBC_PACKAGE_VERSION.apk" && \
-  ALPINE_GLIBC_BIN_PACKAGE_FILENAME="glibc-bin-$ALPINE_GLIBC_PACKAGE_VERSION.apk" && \
-  ALPINE_GLIBC_I18N_PACKAGE_FILENAME="glibc-i18n-$ALPINE_GLIBC_PACKAGE_VERSION.apk" && \
-  apk add --no-cache --virtual=.build-dependencies wget ca-certificates py-pip && \
-  wget \
-      "https://raw.githubusercontent.com/andyshinn/alpine-pkg-glibc/master/sgerrand.rsa.pub" \
-      -O "/etc/apk/keys/sgerrand.rsa.pub" && \
-  wget \
-      "$ALPINE_GLIBC_BASE_URL/$ALPINE_GLIBC_PACKAGE_VERSION/$ALPINE_GLIBC_BASE_PACKAGE_FILENAME" \
-      "$ALPINE_GLIBC_BASE_URL/$ALPINE_GLIBC_PACKAGE_VERSION/$ALPINE_GLIBC_BIN_PACKAGE_FILENAME" \
-      "$ALPINE_GLIBC_BASE_URL/$ALPINE_GLIBC_PACKAGE_VERSION/$ALPINE_GLIBC_I18N_PACKAGE_FILENAME" && \
-  apk add --no-cache \
-      "$ALPINE_GLIBC_BASE_PACKAGE_FILENAME" \
-      "$ALPINE_GLIBC_BIN_PACKAGE_FILENAME" \
-      "$ALPINE_GLIBC_I18N_PACKAGE_FILENAME" && \
-  \
-  rm "/etc/apk/keys/sgerrand.rsa.pub" && \
-  /usr/glibc-compat/bin/localedef --force --inputfile POSIX --charmap UTF-8 C.UTF-8 || true && \
-  echo "export LANG=C.UTF-8" > /etc/profile.d/locale.sh && \
-  \
-  apk del glibc-i18n && \
-  \
-  rm "/root/.wget-hsts" && \
-  rm \
-      "$ALPINE_GLIBC_BASE_PACKAGE_FILENAME" \
-      "$ALPINE_GLIBC_BIN_PACKAGE_FILENAME" \
-      "$ALPINE_GLIBC_I18N_PACKAGE_FILENAME" && \
+################################################################################
+# 1. SETUP GLIBC
+#
+################################################################################
+# blatantly stolen from: https://github.com/frol/docker-alpine-glibc
+#   Here we install GNU libc (aka glibc) and set C.UTF-8 locale as default.
+################################################################################
+    ALPINE_GLIBC_BASE_URL="https://github.com/sgerrand/alpine-pkg-glibc/releases/download" && \
+    ALPINE_GLIBC_PACKAGE_VERSION="2.25-r0" && \
+    ALPINE_GLIBC_BASE_PACKAGE_FILENAME="glibc-$ALPINE_GLIBC_PACKAGE_VERSION.apk" && \
+    ALPINE_GLIBC_BIN_PACKAGE_FILENAME="glibc-bin-$ALPINE_GLIBC_PACKAGE_VERSION.apk" && \
+    ALPINE_GLIBC_I18N_PACKAGE_FILENAME="glibc-i18n-$ALPINE_GLIBC_PACKAGE_VERSION.apk" && \
+    apk add --no-cache --virtual=.build-dependencies wget ca-certificates && \
+    wget \
+        "https://raw.githubusercontent.com/andyshinn/alpine-pkg-glibc/master/sgerrand.rsa.pub" \
+        -O "/etc/apk/keys/sgerrand.rsa.pub" && \
+    wget \
+        "$ALPINE_GLIBC_BASE_URL/$ALPINE_GLIBC_PACKAGE_VERSION/$ALPINE_GLIBC_BASE_PACKAGE_FILENAME" \
+        "$ALPINE_GLIBC_BASE_URL/$ALPINE_GLIBC_PACKAGE_VERSION/$ALPINE_GLIBC_BIN_PACKAGE_FILENAME" \
+        "$ALPINE_GLIBC_BASE_URL/$ALPINE_GLIBC_PACKAGE_VERSION/$ALPINE_GLIBC_I18N_PACKAGE_FILENAME" && \
+    apk add --no-cache \
+        "$ALPINE_GLIBC_BASE_PACKAGE_FILENAME" \
+        "$ALPINE_GLIBC_BIN_PACKAGE_FILENAME" \
+        "$ALPINE_GLIBC_I18N_PACKAGE_FILENAME" && \
+    \
+    rm "/etc/apk/keys/sgerrand.rsa.pub" && \
+    /usr/glibc-compat/bin/localedef --force --inputfile POSIX --charmap UTF-8 C.UTF-8 || true && \
+    echo "export LANG=C.UTF-8" > /etc/profile.d/locale.sh && \
+    \
+    apk del glibc-i18n && \
+    \
+    rm "/root/.wget-hsts" && \
+    rm \
+        "$ALPINE_GLIBC_BASE_PACKAGE_FILENAME" \
+        "$ALPINE_GLIBC_BIN_PACKAGE_FILENAME" \
+        "$ALPINE_GLIBC_I18N_PACKAGE_FILENAME" && \
 
 ################################################################################
 # 2. SETUP Zuul OpenJDK
@@ -54,7 +58,6 @@ RUN \
 ################################################################################
     echo ipv6 >> /etc/modules && \
     echo 'http://dl-2.alpinelinux.org/alpine/v3.3/main/' > /etc/apk/repositories && \
-    apk add --no-cache --virtual=build-dependencies ca-certificates wget && \
     sed -i -e 's#:/bin/[^:].*$#:/sbin/nologin#' /etc/passwd && \
     chmod a=rx /etc/shinit.sh && \
     checksum="3f95d82bf8ece272497ae2d3c5b56c3b" && \
@@ -74,7 +77,7 @@ RUN \
     rm -rf *.zip demo man sample && \
     for ff in ${JAVA_HOME}/bin/*; do f=$(basename $ff); if [ -e ${JRE}/bin/$f ]; then ln -snf ${JRE}/bin/$f $ff; fi; done && \
     chmod a+w ${JRE}/lib ${JRE}/lib/net.properties && \
-    apk del ca-certificates openssl wget  && \
+    apk del openssl  && \
     rm -rf /tmp/* /var/cache/apk/* && \
     java -version && \
 
