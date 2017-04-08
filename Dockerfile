@@ -77,7 +77,6 @@ RUN \
     rm -rf *.zip demo man sample && \
     for ff in ${JAVA_HOME}/bin/*; do f=$(basename $ff); if [ -e ${JRE}/bin/$f ]; then ln -snf ${JRE}/bin/$f $ff; fi; done && \
     chmod a+w ${JRE}/lib ${JRE}/lib/net.properties && \
-    apk del openssl  && \
     rm -rf /tmp/* /var/cache/apk/* && \
     java -version && \
 
@@ -101,4 +100,5 @@ RUN \
   /usr/bin/wget --no-check-certificate https://raw.githubusercontent.com/laurendiperna/Churn_Scripts/master/Transformation_Script.py && \
   /usr/bin/wget --no-check-certificate https://raw.githubusercontent.com/laurendiperna/Churn_Scripts/master/Modeling_Script.py && \
 
+  apk del openssl  && \
   apk del .build-dependencies
